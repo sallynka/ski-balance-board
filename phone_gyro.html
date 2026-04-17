@@ -97,6 +97,18 @@
       cursor: pointer;
     }
     button:active { background: #0d4a7a; }
+    #btn-play {
+      width: 280px;
+      padding: 16px;
+      background: #1a8a2a;
+      font-size: 1.3rem;
+      font-weight: bold;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+    #btn-play.active {
+      background: #8a1a1a;
+    }
     #btn-calibrate {
       width: 280px;
       padding: 12px;
@@ -147,6 +159,8 @@
     </div>
   </div>
 
+  <button id="btn-play">▶ Start hry</button>
+
   <button id="btn-calibrate" onclick="calibrate()">Kalibrovat (nastavit střed)</button>
 
   <div id="sensitivity-wrap">
@@ -193,6 +207,31 @@
 
     // Auto-připojení pokud je uložená URL
     if (saved) setTimeout(connect, 500);
+
+    let playing = false;
+    const btnPlay = document.getElementById('btn-play');
+
+    function sendCommand(cmd) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ cmd }));
+      }
+    }
+
+    function togglePlay() {
+      playing = !playing;
+      if (playing) {
+        btnPlay.textContent = '■ Stop';
+        btnPlay.classList.add('active');
+        sendCommand('play');
+      } else {
+        btnPlay.textContent = '▶ Start hry';
+        btnPlay.classList.remove('active');
+        sendCommand('stop');
+      }
+    }
+
+    btnPlay.addEventListener('touchstart', function(e) { e.preventDefault(); togglePlay(); });
+    btnPlay.addEventListener('click', togglePlay);
 
     window.addEventListener('deviceorientation', handleOrientation);
 

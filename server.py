@@ -91,9 +91,22 @@ async def handler(websocket):
         async for message in websocket:
             try:
                 data = json.loads(message)
-                raw_x = int(data.get("x", 16383))
-                norm  = (raw_x - 16383) / 16383   # -1 .. +1
 
+                cmd = data.get("cmd")
+                if cmd == "play":
+                    keyboard.press(Key.up)
+                    print("▶ Start hry")
+                    continue
+                elif cmd == "stop":
+                    keyboard.release(Key.up)
+                    set_keys(False, False)
+                    print("■ Stop")
+                    continue
+
+                raw_x = int(data.get("x", 16383))
+                norm  = (raw_x - 16383) / 16383
+                if abs(norm) < DEAD_ZONE:
+                    norm = 0.0
                 set_keys(norm < -THRESHOLD, norm > THRESHOLD)
 
             except (json.JSONDecodeError, KeyError, ValueError):
@@ -101,7 +114,8 @@ async def handler(websocket):
     except websockets.exceptions.ConnectionClosed:
         pass
     finally:
-        set_keys(False, False)   # uvolni klávesy při odpojení
+        keyboard.release(Key.up)
+        set_keys(False, False)
         print(f"📵 Telefon odpojen: {addr[0]}")
 
 
