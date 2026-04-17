@@ -6,6 +6,9 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
+:: Přejdi do složky kde leží start.bat
+cd /d "%~dp0"
+
 echo Instaluji zavislosti...
 pip install -r requirements.txt --quiet
 echo.
