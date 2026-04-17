@@ -15,7 +15,8 @@ from pynput.keyboard import Key, Controller
 
 HTTP_PORT = 8080
 WS_PORT   = 8765
-THRESHOLD = 0.20   # 20 % náklonu = stisk klávesy (zbytek = dead zone)
+THRESHOLD = 0.20
+DEAD_ZONE = 0.05
 
 keyboard    = Controller()
 left_held   = False
