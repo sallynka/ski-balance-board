@@ -113,11 +113,7 @@ async def handler(websocket):
                 norm  = (raw_x - 16383) / 16383
                 if abs(norm) < DEAD_ZONE:
                     norm = 0.0
-                go_left  = norm < -THRESHOLD
-                go_right = norm > THRESHOLD
-                if go_left or go_right:
-                    print(f"  klávesa: {'← VLEVO' if go_left else '→ VPRAVO'} (norm={norm:.2f})")
-                set_keys(go_left, go_right)
+                set_keys(norm < -THRESHOLD, norm > THRESHOLD)
 
             except (json.JSONDecodeError, KeyError, ValueError):
                 pass
