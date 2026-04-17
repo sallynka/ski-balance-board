@@ -83,7 +83,8 @@ Avast může blokovat připojení. Přidej pravidlo:
 
 **Práh náklonu** — v `server.py`:
 ```python
-THRESHOLD = 0.20   # zmenšit = citlivější
+THRESHOLD = 0.20   # zmenšit = citlivější, doporučujeme 0.10
+DEAD_ZONE = 0.05   # oblast kolem středu kde se nic neděje
 ```
 
 **Jiné klávesy** — v `server.py`:
