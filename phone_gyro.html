@@ -110,27 +110,16 @@
     }
     #sensitivity-wrap label { font-size: 0.8rem; color: #7ecfff; }
     input[type=range] { width: 100%; margin-top: 4px; }
-    #perm-btn {
-      width: 280px;
-      padding: 14px;
-      font-size: 1rem;
-      background: #aa6a1a;
-      border-radius: 10px;
-      margin-bottom: 16px;
-    }
   </style>
 </head>
 <body>
   <h1>🎿 Ski Balance Board</h1>
 
-  <!-- iOS vyžaduje explicitní povolení -->
-  <button id="perm-btn" onclick="requestPermission()">Povolit gyroskop (iOS)</button>
-
   <div id="status">Odpojeno</div>
 
   <div id="ws-url-wrap">
     <input id="ws-url" type="text" placeholder="ws://192.168.x.x:8765" value="">
-    <button onclick="connect()">Připojit</button>
+    <button id="btn-connect">Připojit</button>
   </div>
 
   <div id="ball-container">
@@ -173,13 +162,18 @@
     function connect() {
       const url = document.getElementById('ws-url').value.trim();
       if (!url) { alert('Zadej adresu WebSocket serveru!'); return; }
+      setStatus('Připojuji...', '');
       localStorage.setItem('wsUrl', url);
 
       if (ws) ws.close();
-      ws = new WebSocket(url);
-      ws.onopen = () => setStatus('Připojeno ✓', 'connected');
-      ws.onclose = () => setStatus('Odpojeno', '');
-      ws.onerror = () => setStatus('Chyba připojení', 'error');
+      try {
+        ws = new WebSocket(url);
+        ws.onopen  = () => setStatus('Připojeno ✓', 'connected');
+        ws.onclose = () => setStatus('Odpojeno', '');
+        ws.onerror = (e) => setStatus('Chyba: ' + url, 'error');
+      } catch (e) {
+        setStatus('Chyba: ' + e.message, 'error');
+      }
     }
 
     function setStatus(msg, cls) {
@@ -191,27 +185,16 @@
     const saved = localStorage.getItem('wsUrl');
     if (saved) document.getElementById('ws-url').value = saved;
 
-    function requestPermission() {
-      if (typeof DeviceOrientationEvent !== 'undefined' &&
-          typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission()
-          .then(r => {
-            if (r === 'granted') {
-              document.getElementById('perm-btn').style.display = 'none';
-              window.addEventListener('deviceorientation', handleOrientation);
-            }
-          }).catch(console.error);
-      } else {
-        document.getElementById('perm-btn').style.display = 'none';
-        window.addEventListener('deviceorientation', handleOrientation);
-      }
-    }
+    document.getElementById('btn-connect').addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      connect();
+    });
+    document.getElementById('btn-connect').addEventListener('click', connect);
 
-    if (typeof DeviceOrientationEvent !== 'undefined' &&
-        typeof DeviceOrientationEvent.requestPermission !== 'function') {
-      document.getElementById('perm-btn').style.display = 'none';
-      window.addEventListener('deviceorientation', handleOrientation);
-    }
+    // Auto-připojení pokud je uložená URL
+    if (saved) setTimeout(connect, 500);
+
+    window.addEventListener('deviceorientation', handleOrientation);
 
     function calibrate() {
       calibGamma = lastGamma;
