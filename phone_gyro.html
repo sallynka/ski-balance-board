@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Ski Balance Board</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: sans-serif;
+      background: #0a1628;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      touch-action: none;
+    }
+    h1 { font-size: 1.4rem; margin-bottom: 20px; color: #7ecfff; }
+    #status {
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+      background: #1e3a5f;
+    }
+    #status.connected { background: #1a5c2a; color: #5dff7e; }
+    #status.error { background: #5c1a1a; color: #ff6b6b; }
+
+    #ball-container {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      border: 2px solid #2a4a7f;
+      border-radius: 50%;
+      background: #0d1f3c;
+      margin-bottom: 20px;
+    }
+    #crosshair-h, #crosshair-v {
+      position: absolute;
+      background: #2a4a7f;
+    }
+    #crosshair-h { width: 100%; height: 1px; top: 50%; left: 0; }
+    #crosshair-v { width: 1px; height: 100%; left: 50%; top: 0; }
+    #ball {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #7ecfff, #1a6aaa);
+      transform: translate(-50%, -50%);
+      transition: left 0.05s, top 0.05s;
+      left: 50%;
+      top: 50%;
+    }
+
+    .data-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      width: 280px;
+      margin-bottom: 20px;
+    }
+    .data-box {
+      background: #1e3a5f;
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+    }
+    .data-label { font-size: 0.7rem; color: #7ecfff; margin-bottom: 4px; }
+    .data-value { font-size: 1.3rem; font-weight: bold; }
+
+    #ws-url-wrap {
+      display: flex;
+      gap: 8px;
+      width: 280px;
+      margin-bottom: 12px;
+    }
+    #ws-url {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #2a4a7f;
+      background: #0d1f3c;
+      color: #fff;
+      font-size: 0.85rem;
+    }
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      background: #1a6aaa;
+      color: #fff;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    button:active { background: #0d4a7a; }
+    #btn-calibrate {
+      width: 280px;
+      padding: 12px;
+      background: #2a5c1a;
+      font-size: 1rem;
+      border-radius: 10px;
+    }
+    #sensitivity-wrap {
+      width: 280px;
+      margin-top: 12px;
+    }
+    #sensitivity-wrap label { font-size: 0.8rem; color: #7ecfff; }
+    input[type=range] { width: 100%; margin-top: 4px; }
+    #perm-btn {
+      width: 280px;
+      padding: 14px;
+      font-size: 1rem;
+      background: #aa6a1a;
+      border-radius: 10px;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎿 Ski Balance Board</h1>
+
+  <!-- iOS vyžaduje explicitní povolení -->
+  <button id="perm-btn" onclick="requestPermission()">Povolit gyroskop (iOS)</button>
+
+  <div id="status">Odpojeno</div>
+
+  <div id="ws-url-wrap">
+    <input id="ws-url" type="text" placeholder="ws://192.168.x.x:8765" value="">
+    <button onclick="connect()">Připojit</button>
+  </div>
+
+  <div id="ball-container">
+    <div id="crosshair-h"></div>
+    <div id="crosshair-v"></div>
+    <div id="ball"></div>
+  </div>
+
+  <div class="data-grid">
+    <div class="data-box">
+      <div class="data-label">Náklon vlevo/vpravo (γ)</div>
+      <div class="data-value" id="val-gamma">0°</div>
+    </div>
+    <div class="data-box">
+      <div class="data-label">Náklon dopředu/dozadu (β)</div>
+      <div class="data-value" id="val-beta">0°</div>
+    </div>
+    <div class="data-box">
+      <div class="data-label">vJoy osa X</div>
+      <div class="data-value" id="val-x">0</div>
+    </div>
+    <div class="data-box">
+      <div class="data-label">vJoy osa Y</div>
+      <div class="data-value" id="val-y">0</div>
+    </div>
+  </div>
+
+  <button id="btn-calibrate" onclick="calibrate()">Kalibrovat (nastavit střed)</button>
+
+  <div id="sensitivity-wrap">
+    <label>Citlivost: <span id="sens-val">1.0</span>×</label>
+    <input type="range" id="sensitivity" min="0.2" max="3.0" step="0.1" value="1.0"
+      oninput="document.getElementById('sens-val').textContent=this.value">
+  </div>
+
+  <script>
+    let ws = null;
+    let calibGamma = 0, calibBeta = 0;
+
+    function connect() {
+      const url = document.getElementById('ws-url').value.trim();
+      if (!url) { alert('Zadej adresu WebSocket serveru!'); return; }
+      localStorage.setItem('wsUrl', url);
+
+      if (ws) ws.close();
+      ws = new WebSocket(url);
+      ws.onopen = () => setStatus('Připojeno ✓', 'connected');
+      ws.onclose = () => setStatus('Odpojeno', '');
+      ws.onerror = () => setStatus('Chyba připojení', 'error');
+    }
+
+    function setStatus(msg, cls) {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = cls;
+    }
+
+    const saved = localStorage.getItem('wsUrl');
+    if (saved) document.getElementById('ws-url').value = saved;
+
+    function requestPermission() {
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+          typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+          .then(r => {
+            if (r === 'granted') {
+              document.getElementById('perm-btn').style.display = 'none';
+              window.addEventListener('deviceorientation', handleOrientation);
+            }
+          }).catch(console.error);
+      } else {
+        document.getElementById('perm-btn').style.display = 'none';
+        window.addEventListener('deviceorientation', handleOrientation);
+      }
+    }
+
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission !== 'function') {
+      document.getElementById('perm-btn').style.display = 'none';
+      window.addEventListener('deviceorientation', handleOrientation);
+    }
+
+    function calibrate() {
+      calibGamma = lastGamma;
+      calibBeta  = lastBeta;
+    }
+
+    let lastGamma = 0, lastBeta = 0;
+    let lastSend = 0;
+
+    function handleOrientation(e) {
+      lastGamma = e.gamma ?? 0;
+      lastBeta  = e.beta  ?? 0;
+
+      const sens = parseFloat(document.getElementById('sensitivity').value);
+      const g = (lastGamma - calibGamma) * sens;
+      const b = (lastBeta  - calibBeta)  * sens;
+
+      const xNorm = Math.max(-1, Math.min(1, g / 45));
+      const yNorm = Math.max(-1, Math.min(1, b / 45));
+
+      const vX = Math.round((xNorm + 1) * 16383);
+      const vY = Math.round((yNorm + 1) * 16383);
+
+      document.getElementById('val-gamma').textContent = g.toFixed(1) + '°';
+      document.getElementById('val-beta').textContent  = b.toFixed(1) + '°';
+      document.getElementById('val-x').textContent = vX;
+      document.getElementById('val-y').textContent = vY;
+
+      const cx = 140 + xNorm * 120;
+      const cy = 140 + yNorm * 120;
+      const ball = document.getElementById('ball');
+      ball.style.left = cx + 'px';
+      ball.style.top  = cy + 'px';
+
+      const now = Date.now();
+      if (ws && ws.readyState === WebSocket.OPEN && now - lastSend > 33) {
+        lastSend = now;
+        ws.send(JSON.stringify({ x: vX, y: vY, gamma: g, beta: b }));
+      }
+    }
+  </script>
+</body>
+</html>
