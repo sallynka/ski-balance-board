@@ -103,6 +103,11 @@ async def handler(websocket):
                     set_keys(False, False)
                     print("■ Stop")
                     continue
+                elif cmd == "threshold":
+                    global THRESHOLD
+                    THRESHOLD = float(data.get("value", THRESHOLD))
+                    print(f"⚙️  Práh náklonu: {THRESHOLD:.2f}")
+                    continue
 
                 raw_x = int(data.get("x", 16383))
                 norm  = (raw_x - 16383) / 16383

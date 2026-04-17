@@ -167,6 +167,9 @@
     <label>Citlivost: <span id="sens-val">1.0</span>×</label>
     <input type="range" id="sensitivity" min="0.2" max="3.0" step="0.1" value="1.0"
       oninput="document.getElementById('sens-val').textContent=this.value">
+    <label style="margin-top:10px;display:block">Práh náklonu: <span id="thresh-val">0.20</span></label>
+    <input type="range" id="threshold" min="0.05" max="0.50" step="0.05" value="0.20"
+      oninput="onThresholdChange(this.value)">
   </div>
 
   <script>
@@ -234,6 +237,13 @@
     btnPlay.addEventListener('click', togglePlay);
 
     window.addEventListener('deviceorientation', handleOrientation);
+
+    function onThresholdChange(val) {
+      document.getElementById('thresh-val').textContent = parseFloat(val).toFixed(2);
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ cmd: 'threshold', value: parseFloat(val) }));
+      }
+    }
 
     function calibrate() {
       calibGamma = lastGamma;
