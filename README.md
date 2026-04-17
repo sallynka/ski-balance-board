@@ -16,7 +16,7 @@ Telefon na desce snímá náklon → PC simuluje šipky ← → → hra reaguje.
 ## Instalace
 
 ```bash
-git clone https://github.com/<tvuj-github>/ski-balance-board.git
+git clone https://github.com/sallynka/ski-balance-board.git
 cd ski-balance-board
 ```
 
@@ -26,7 +26,7 @@ Nebo stáhni ZIP z GitHubu → rozbal na PC.
 
 ## Spuštění
 
-1. Dvojklik na **`start.bat`** — nainstaluje závislosti a spustí server
+1. Pravým tlačítkem na **`start.bat`** → **Spustit jako správce**
 2. Server vypíše přesné adresy, např.:
    ```
    1. Na telefonu otevři Chrome a jdi na:
@@ -37,7 +37,18 @@ Nebo stáhni ZIP z GitHubu → rozbal na PC.
 3. Na telefonu otevři Chrome, jdi na první adresu
 4. Zadej druhou adresu (ws://...) a klikni **Připojit**
 5. Polož telefon na desku a klikni **Kalibrovat**
-6. Otevři hru, klikni do okna hry a hraj!
+6. Otevři hru, klikni do okna hry
+7. Klikni **▶ Start hry** na telefonu a hraj!
+
+---
+
+## Ovládání
+
+- Náklon doleva → šipka ←
+- Náklon doprava → šipka →
+- **▶ Start hry** → začne se držet šipka ↑ (lyžař jede)
+- **■ Stop** → pustí šipku ↑
+- Střed (±20 %) → žádná klávesa
 
 ---
 
@@ -51,25 +62,32 @@ Nebo stáhni ZIP z GitHubu → rozbal na PC.
 🎿 Ski hra
 ```
 
-- Náklon doleva → šipka ←
-- Náklon doprava → šipka →
-- Střed (±20 %) → žádná klávesa
+Žádné drivery — stačí Python.
 
-Žádné drivery ani speciální software — stačí Python.
+---
+
+## Firewall (Avast)
+
+Avast může blokovat připojení. Přidej pravidlo:  
+**Avast → Ochrana → Firewall → Aplikace → Python → přidat pravidlo**
+- Protokol: TCP
+- Směr: Příchozí
+- Porty: 8080, 8765
+- Akce: Povolit
 
 ---
 
 ## Nastavení
 
-**Citlivost** — slider přímo v aplikaci na telefonu.
+**Citlivost** — slider v aplikaci na telefonu.
 
 **Práh náklonu** — v `server.py`:
 ```python
-THRESHOLD = 0.20   # 20 % = výchozí, zmenšit = citlivější
+THRESHOLD = 0.20   # zmenšit = citlivější
 ```
 
 **Jiné klávesy** — v `server.py`:
 ```python
 keyboard.press(Key.left)   # změň na jinou klávesu
-keyboard.press(Key.right)  # změň na jinou klávesu
+keyboard.press(Key.right)
 ```
